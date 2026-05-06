@@ -1,164 +1,102 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../errors/app_exception.dart';
 import '../../features/diagnosis/domain/models/diagnosis_result.dart';
 
 class ClaudeService {
-  static const String _baseUrl = 'https://api.anthropic.com/v1';
-  static const String _model = 'claude-sonnet-4-20250514';
+  static const String _baseUrl =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   late final Dio _dio;
+  late final String _apiKey;
 
   ClaudeService() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': dotenv.env['CLAUDE_API_KEY'] ?? '',
-        'anthropic-version': '2023-06-01',
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-    ));
+    _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    _dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
   }
 
-  Future<DiagnosisResult> diagnoseVehicle({
-    required String vehicleInfo,
-    required String problemDescription,
-    String? additionalContext,
+  Future<DiagnosisResult> diagnose({
+    required String carMake,
+    required String carModel,
+    required int carYear,
+    required String symptoms,
   }) async {
-    const systemPrompt = """أنت خبير ميكانيكي متخصص في تشخيص أعطال السيارات.
-قم بتحليل المشكلة المذكورة وتقديم تشخيص دقيق باللغة العربية.
-يجب أن يكون ردك بتنسيق JSON فقط بالحقول التالية:
-- severity: (low/medium/high/critical)
-- diagnosis: وصف التشخيص
-- possibleCauses: قائمة بالأسباب المحتملة
-- recommendedService: الخدمة الموصى بها
-- estimatedPriceMin: السعر الأدنى المتوقع بالريال
-- estimatedPriceMax: السعر الأعلى المتوقع بالريال
-- urgencyMessage: رسالة الاستعجال للعميل
-- requiresImmediateAttention: true/false""";
+    if (_apiKey.isEmpty) {
+      throw Exception('GEMINI_API_KEY غير موجود في ملف .env');
+    }
 
-    final userMessage = """معلومات السيارة: $vehicleInfo
-المشكلة: $problemDescription
-${additionalContext != null ? 'معلومات إضافية: $additionalContext' : ''}""";
+    final prompt = '''
+أنت خبير ميكانيكي متخصص في السيارات. قم بتحليل الأعراض التالية وأعطِ تشخيصاً مفصلاً.
+
+السيارة: $carMake $carModel ($carYear)
+الأعراض: $symptoms
+
+أجب بـ JSON فقط بالصيغة التالية (بدون أي نص خارج الـ JSON):
+{
+  "diagnosis": "وصف المشكلة المحتملة",
+  "severity": "low|medium|high|critical",
+  "recommended_actions": ["الإجراء الأول", "الإجراء الثاني"],
+  "estimated_price_min": 100,
+  "estimated_price_max": 500,
+  "notes": "ملاحظات إضافية اختيارية"
+}
+''';
 
     try {
       final response = await _dio.post(
-        '/messages',
+        '$_baseUrl?key=$_apiKey',
         data: {
-          'model': _model,
-          'max_tokens': 1024,
-          'system': systemPrompt,
-          'messages': [
-            {'role': 'user', 'content': userMessage}
+          'contents': [
+            {
+              'parts': [
+                {'text': prompt}
+              ]
+            }
           ],
+          'generationConfig': {
+            'temperature': 0.3,
+            'maxOutputTokens': 1024,
+          },
         },
       );
 
-      final text = response.data['content'][0]['text'] as String;
-      // Strip markdown code fences if present
-      final jsonStr = text
-          .replaceAll(RegExp(r'```jsons*'), '')
-          .replaceAll(RegExp(r'```s*'), '')
-          .trim();
+      final candidates = response.data['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) {
+        throw Exception('لم يتم الحصول على رد من Gemini');
+      }
 
+      final text = candidates[0]['content']['parts'][0]['text'] as String;
+
+      return _parseResponse(text);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        throw Exception('طلب غير صالح: ${e.response?.data}');
+      } else if (e.response?.statusCode == 403) {
+        throw Exception('مفتاح Gemini API غير صالح أو منتهي الصلاحية');
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('انتهت مهلة الاتصال. تحقق من الإنترنت');
+      }
+      throw Exception('خطأ في الاتصال: ${e.message}');
+    }
+  }
+
+  DiagnosisResult _parseResponse(String text) {
+    final jsonStr = text
+        .replaceAll(RegExp(r'```json\s*'), '')
+        .replaceAll(RegExp(r'```\s*'), '')
+        .trim();
+
+    try {
       final Map<String, dynamic> parsed = jsonDecode(jsonStr);
       return DiagnosisResult.fromJson(parsed);
-    } on DioException catch (e) {
-      throw NetworkException(
-        'فشل الاتصال بخدمة التشخيص الذكي: ${e.message}',
-        code: e.response?.statusCode?.toString(),
-      );
     } on FormatException catch (e) {
-      throw AppException('خطأ في تحليل نتيجة الذكاء الاصطناعي: ${e.message}');
-    } catch (e) {
-      throw AppException('خطأ غير متوقع في التشخيص: $e');
-    }
-  }
-}import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../errors/app_exception.dart';
-import '../../features/diagnosis/domain/models/diagnosis_result.dart';
-
-class ClaudeService {
-  static const String _baseUrl = 'https://api.anthropic.com/v1';
-  static const String _model = 'claude-sonnet-4-20250514';
-
-  late final Dio _dio;
-
-  ClaudeService() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': dotenv.env['CLAUDE_API_KEY'] ?? '',
-        'anthropic-version': '2023-06-01',
-      },
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-    ));
-  }
-
-  Future<DiagnosisResult> diagnoseVehicle({
-    required String vehicleInfo,
-    required String problemDescription,
-    String? additionalContext,
-  }) async {
-    const systemPrompt = '''أنت خبير ميكانيكي متخصص في تشخيص أعطال السيارات.
-قم بتحليل المشكلة المذكورة وتقديم تشخيص دقيق باللغة العربية.
-يجب أن يكون ردك بتنسيق JSON فقط بالحقول التالية:
-- severity: (low/medium/high/critical)
-- diagnosis: وصف التشخيص
-- possibleCauses: قائمة بالأسباب المحتملة
-- recommendedService: الخدمة الموصى بها
-- estimatedPriceMin: السعر الأدنى المتوقع بالريال
-- estimatedPriceMax: السعر الأعلى المتوقع بالريال
-- urgencyMessage: رسالة الاستعجال للعميل
-- requiresImmediateAttention: true/false''';
-
-    final userMessage = '''معلومات السيارة: $vehicleInfo
-المشكلة: $problemDescription
-${additionalContext != null ? 'معلومات إضافية: $additionalContext' : ''}''';
-
-    try {
-      final response = await _dio.post(
-        '/messages',
-        data: {
-          'model': _model,
-          'max_tokens': 1024,
-          'system': systemPrompt,
-          'messages': [
-            {'role': 'user', 'content': userMessage}
-          ],
-        },
-      );
-
-      final text = response.data['content'][0]['text'] as String;
-      final jsonStr = text.replaceAll(RegExp(r'^```json\n?|\n?```$'), '').trim();
-      return DiagnosisResult.fromJson(_parseJson(jsonStr));
-    } on DioException catch (e) {
-      throw NetworkException(
-        'فشل الاتصال بخدمة التشخيص الذكي: ${e.message}',
-        code: e.response?.statusCode?.toString(),
-      );
-    } catch (e) {
-      throw AppException('خطأ في معالجة نتيجة التشخيص: $e');
-    }
-  }
-
-  Map<String, dynamic> _parseJson(String jsonStr) {
-    try {
-      // Simple JSON parsing for the expected structure
-      final result = <String, dynamic>{};
-      final lines = jsonStr
-          .replaceAll('{', '')
-          .replaceAll('}', '')
-          .split(',\n');
-      return result;
-    } catch (_) {
-      throw AppException('فشل تحليل نتيجة الذكاء الاصطناعي');
+      throw Exception('فشل في تحليل رد Gemini: $e\nالرد: $text');
     }
   }
 }

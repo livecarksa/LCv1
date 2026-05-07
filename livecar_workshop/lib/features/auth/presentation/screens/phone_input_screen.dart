@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,11 +18,31 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  int _cooldownSeconds = 0;
+  Timer? _cooldownTimer;
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _cooldownTimer?.cancel();
     super.dispose();
+  }
+
+  void _startCooldown() {
+    _cooldownSeconds = 60;
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_cooldownSeconds > 0) {
+          _cooldownSeconds--;
+        } else {
+          _cooldownTimer?.cancel();
+        }
+      });
+    });
   }
 
   Future<void> _sendOtp() async {
@@ -30,6 +51,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
     try {
       await ref.read(authProvider.notifier).sendOtp(_phoneController.text.trim());
       if (mounted) {
+        _startCooldown();
         context.push('/otp', extra: _phoneController.text.trim());
       }
     } catch (e) {
@@ -132,8 +154,10 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                 ),
                 const SizedBox(height: 32),
                 LiveCarButton(
-                  label: 'إرسال رمز التحقق',
-                  onPressed: _sendOtp,
+                  label: _cooldownSeconds > 0
+                      ? 'أعد الإرسال بعد ${_cooldownSeconds} ثانية'
+                      : 'إرسال رمز التحقق',
+                  onPressed: (_cooldownSeconds > 0 || _isLoading) ? null : _sendOtp,
                   isLoading: _isLoading,
                 ),
               ],

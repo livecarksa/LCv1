@@ -155,7 +155,7 @@ final allOrdersProvider = StreamProvider.autoDispose<List<OrderModel>>((ref) {
 final orderDetailProvider = FutureProvider.autoDispose.family<OrderModel?, String>((ref, orderId) async {
   final result = await Supabase.instance.client
       .from('orders')
-      .select('*, users(full_name, phone)')
+      .select('*, profiles(full_name, phone)')
       .eq('id', orderId)
       .maybeSingle();
   if (result == null) return null;

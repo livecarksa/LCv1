@@ -2,570 +2,254 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/claude_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../domain/models/diagnosis_result.dart';
-import '../../../../shared/widgets/livecar_button.dart';
+import '../../domain/models/diagnosis_result.dart';
 
-final _claudeServiceProvider = Provider((ref) => GeminiService());
+final _geminiServiceProvider = Provider<GeminiService>((ref) => GeminiService());
 
-class AiDiagnosisScreen extends ConsumerStatefulWidget {
-  const AiDiagnosisScreen({super.key});
+class AIDiagnosisScreen extends ConsumerStatefulWidget {
+  const AIDiagnosisScreen({super.key});
 
   @override
-  ConsumerState<AiDiagnosisScreen> createState() => _AiDiagnosisScreenState();
+  ConsumerState<AIDiagnosisScreen> createState() => _AIDiagnosisScreenState();
 }
 
-class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
-  final _carMakeController = TextEditingController();
-  final _carModelController = TextEditingController();
-  final _carYearController = TextEditingController();
+class _AIDiagnosisScreenState extends ConsumerState<AIDiagnosisScreen> {
+  final _makeController = TextEditingController();
+  final _modelController = TextEditingController();
+  final _yearController = TextEditingController();
   final _problemController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
   DiagnosisResult? _result;
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void dispose() {
-    _carMakeController.dispose();
-    _carModelController.dispose();
-    _carYearController.dispose();
+    _makeController.dispose();
+    _modelController.dispose();
+    _yearController.dispose();
     _problemController.dispose();
     super.dispose();
   }
 
   Future<void> _diagnose() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _result = null; });
+    if (_makeController.text.trim().isEmpty ||
+        _modelController.text.trim().isEmpty ||
+        _problemController.text.trim().isEmpty) {
+      setState(() => _error = 'يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+    setState(() { _isLoading = true; _error = null; _result = null; });
     try {
-      final vehicleInfo = '${_carMakeController.text} ${_carModelController.text} ${_carYearController.text}'.trim();
-      final service = ref.read(_claudeServiceProvider);
+      final vehicleInfo =
+          '${_makeController.text.trim()} ${_modelController.text.trim()} ${_yearController.text.trim()}'.trim();
+      final service = ref.read(_geminiServiceProvider);
       final result = await service.diagnoseVehicle(
         vehicleInfo: vehicleInfo,
         problemDescription: _problemController.text.trim(),
       );
       setState(() => _result = result);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ø®Ø·Ø£ ÙÙ Ø§ÙØªØ´Ø®ÙØµ: $e'), backgroundColor: AppColors.error),
-        );
-      }
+      setState(() => _error = 'حدث خطأ: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.grayBackground,
       appBar: AppBar(
-        title: const Text('Ø§ÙØªØ´Ø®ÙØµ Ø§ÙØ°ÙÙ'),
-        backgroundColor: AppColors.orange,
+        title: const Text('تشخيص المركبة بالذكاء الاصطناعي'),
+        backgroundColor: AppColors.bluePrimary,
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // AI Banner
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.bluePrimary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.bluePrimary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: AppColors.bluePrimary, size: 20),
+                  const SizedBox(width: 8),
+                  Text('مدعوم بـ Gemini AI',
+                      style: TextStyle(color: AppColors.bluePrimary, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _makeController,
+              textDirection: TextDirection.rtl,
+              decoration: const InputDecoration(labelText: 'الماركة', hintText: 'مثال: تويوتا', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _modelController,
+              textDirection: TextDirection.rtl,
+              decoration: const InputDecoration(labelText: 'الموديل', hintText: 'مثال: كامري', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _yearController,
+              textDirection: TextDirection.rtl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'سنة الصنع', hintText: 'مثال: 2020', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _problemController,
+              textDirection: TextDirection.rtl,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'وصف المشكلة',
+                hintText: 'صف المشكلة التي تواجهها...',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (_error != null)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.orange, AppColors.orange.withOpacity(0.7)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade300),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.psychology, color: Colors.white, size: 40),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ÙØ¯Ø¹ÙÙ Ø¨Ù Claude AI',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('Ø§Ø­ØµÙ Ø¹ÙÙ ØªØ´Ø®ÙØµ Ø¯ÙÙÙ ÙÙ Ø«ÙØ§ÙÙ',
-                            style: TextStyle(color: Colors.white70, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                child: Text(_error!, style: TextStyle(color: Colors.red.shade700), textDirection: TextDirection.rtl),
               ),
-              const SizedBox(height: 20),
-
-              // Vehicle Info
-              _SectionCard(
-                title: 'ÙØ¹ÙÙÙØ§Øª Ø§ÙØ³ÙØ§Ø±Ø©',
-                children: [
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _carMakeController,
-                        decoration: const InputDecoration(labelText: 'Ø§ÙÙØ§Ø±ÙØ©', hintText: 'ØªÙÙÙØªØ§'),
-                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _carModelController,
-                        decoration: const InputDecoration(labelText: 'Ø§ÙÙÙØ¯ÙÙ', hintText: 'ÙØ§ÙØ±Ù'),
-                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _carYearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Ø³ÙØ© Ø§ÙØµÙØ¹', hintText: '2020'),
-                  ),
-                ],
+            ElevatedButton(
+              onPressed: _isLoading ? null : _diagnose,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.bluePrimary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              const SizedBox(height: 16),
-
-              // Problem Description
-              _SectionCard(
-                title: 'ÙØµÙ Ø§ÙÙØ´ÙÙØ©',
-                children: [
-                  TextFormField(
-                    controller: _problemController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨Ø§ÙØªÙØµÙÙ... ÙØ«Ø§Ù: ÙØµØ¯Ø± ØµÙØª Ø·Ø±Ù Ø¹ÙØ¯ Ø§ÙØªØ³Ø§Ø±Ø¹',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v?.length ?? 0) < 10 ? 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨ÙØ²ÙØ¯ ÙÙ Ø§ÙØªÙØµÙÙ' : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              LiveCarButton(
-                label: 'ØªØ´Ø®ÙØµ Ø¨Ø§ÙØ°ÙØ§Ø¡ Ø§ÙØ§ØµØ·ÙØ§Ø¹Ù',
-                onPressed: _diagnose,
-                isLoading: _isLoading,
-                icon: Icons.psychology,
-              ),
-
-              // Result
-              if (_result != null) ...[
-                const SizedBox(height: 24),
-                _DiagnosisResultCard(result: _result!),
-              ],
+              child: _isLoading
+                  ? const SizedBox(height: 20, width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('تشخيص المشكلة', style: TextStyle(fontSize: 16)),
+            ),
+            if (_result != null) ...[
+              const SizedBox(height: 24),
+              _buildResultCard(_result!),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _SectionCard({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.grayLight),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    ),
-  );
-}
-
-class _DiagnosisResultCard extends StatelessWidget {
-  final DiagnosisResult result;
-  const _DiagnosisResultCard({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: result.severity.color, width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('ÙØªÙØ¬Ø© Ø§ÙØªØ´Ø®ÙØµ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: result.severity.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(result.severity.label,
-                  style: TextStyle(color: result.severity.color, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          Text(result.diagnosis, style: const TextStyle(fontSize: 15)),
-          const SizedBox(height: 16),
-          const Text('Ø§ÙØ£Ø³Ø¨Ø§Ø¨ Ø§ÙÙØ­ØªÙÙØ©:', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...result.possibleCauses.map((c) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(children: [
-              Icon(Icons.circle, size: 8, color: result.severity.color),
-              const SizedBox(width: 8),
-              Expanded(child: Text(c)),
-            ]),
-          )),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.blueLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
+  Widget _buildResultCard(DiagnosisResult result) {
+    final severityColor = _getSeverityColor(result.severity);
+    final severityLabel = _getSeverityLabel(result.severity);
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                const Icon(Icons.build_circle_outlined, color: AppColors.bluePrimary),
-                const SizedBox(width: 8),
-                Expanded(child: Text(result.recommendedService,
-                  style: const TextStyle(fontWeight: FontWeight.w500))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: severityColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: severityColor),
+                  ),
+                  child: Text(severityLabel,
+                      style: TextStyle(color: severityColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+                const Spacer(),
+                if (result.requiresImmediateAttention)
+                  Row(children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.red.shade600, size: 18),
+                    const SizedBox(width: 4),
+                    Text('يحتاج عناية فورية',
+                        style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ]),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Ø§ÙØªÙÙÙØ© Ø§ÙÙØªÙÙØ¹Ø©:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(result.priceRange,
-                style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16)),
-            ],
-          ),
-          if (result.requiresImmediateAttention) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(result.urgencyMessage,
-                    style: const TextStyle(color: AppColors.error))),
-                ],
-              ),
+            const SizedBox(height: 14),
+            Text('التشخيص', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.blueDark)),
+            const SizedBox(height: 6),
+            Text(result.diagnosis, style: const TextStyle(fontSize: 14), textDirection: TextDirection.rtl),
+            const Divider(height: 24),
+            Text('الأسباب المحتملة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.blueDark)),
+            const SizedBox(height: 6),
+            ...result.possibleCauses.map((cause) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.circle, size: 8, color: AppColors.bluePrimary),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(cause, style: const TextStyle(fontSize: 13), textDirection: TextDirection.rtl)),
+                    ],
+                  ),
+                )),
+            const Divider(height: 24),
+            Text('الخدمة الموصى بها', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.blueDark)),
+            const SizedBox(height: 6),
+            Text(result.recommendedService, style: const TextStyle(fontSize: 14), textDirection: TextDirection.rtl),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('التكلفة التقديرية',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.blueDark)),
+                Text(result.priceRange,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green)),
+              ],
             ),
+            if (result.urgencyMessage.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: severityColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: severityColor.withOpacity(0.4)),
+                ),
+                child: Text(result.urgencyMessage,
+                    style: TextStyle(color: severityColor, fontSize: 13),
+                    textDirection: TextDirection.rtl),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
-}import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/claude_service.dart';
-import '../../../core/theme/app_colors.dart';
-import '../domain/models/diagnosis_result.dart';
-import '../../../shared/widgets/livecar_button.dart';
 
-final _claudeServiceProvider = Provider((ref) => GeminiService());
-
-class AiDiagnosisScreen extends ConsumerStatefulWidget {
-  const AiDiagnosisScreen({super.key});
-
-  @override
-  ConsumerState<AiDiagnosisScreen> createState() => _AiDiagnosisScreenState();
-}
-
-class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
-  final _carMakeController = TextEditingController();
-  final _carModelController = TextEditingController();
-  final _carYearController = TextEditingController();
-  final _problemController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-  DiagnosisResult? _result;
-
-  @override
-  void dispose() {
-    _carMakeController.dispose();
-    _carModelController.dispose();
-    _carYearController.dispose();
-    _problemController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _diagnose() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _result = null; });
-    try {
-      final vehicleInfo = '${_carMakeController.text} ${_carModelController.text} ${_carYearController.text}'.trim();
-      final service = ref.read(_claudeServiceProvider);
-      final result = await service.diagnoseVehicle(
-        vehicleInfo: vehicleInfo,
-        problemDescription: _problemController.text.trim(),
-      );
-      setState(() => _result = result);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ø®Ø·Ø£ ÙÙ Ø§ÙØªØ´Ø®ÙØµ: $e'), backgroundColor: AppColors.error),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+  Color _getSeverityColor(DiagnosisSeverity severity) {
+    switch (severity) {
+      case DiagnosisSeverity.low: return Colors.green;
+      case DiagnosisSeverity.medium: return Colors.orange;
+      case DiagnosisSeverity.high: return Colors.deepOrange;
+      case DiagnosisSeverity.critical: return Colors.red;
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.grayBackground,
-      appBar: AppBar(
-        title: const Text('Ø§ÙØªØ´Ø®ÙØµ Ø§ÙØ°ÙÙ'),
-        backgroundColor: AppColors.orange,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // AI Banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.orange, AppColors.orange.withOpacity(0.7)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.psychology, color: Colors.white, size: 40),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ÙØ¯Ø¹ÙÙ Ø¨Ù Claude AI',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('Ø§Ø­ØµÙ Ø¹ÙÙ ØªØ´Ø®ÙØµ Ø¯ÙÙÙ ÙÙ Ø«ÙØ§ÙÙ',
-                            style: TextStyle(color: Colors.white70, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Vehicle Info
-              _SectionCard(
-                title: 'ÙØ¹ÙÙÙØ§Øª Ø§ÙØ³ÙØ§Ø±Ø©',
-                children: [
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _carMakeController,
-                        decoration: const InputDecoration(labelText: 'Ø§ÙÙØ§Ø±ÙØ©', hintText: 'ØªÙÙÙØªØ§'),
-                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _carModelController,
-                        decoration: const InputDecoration(labelText: 'Ø§ÙÙÙØ¯ÙÙ', hintText: 'ÙØ§ÙØ±Ù'),
-                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _carYearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Ø³ÙØ© Ø§ÙØµÙØ¹', hintText: '2020'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Problem Description
-              _SectionCard(
-                title: 'ÙØµÙ Ø§ÙÙØ´ÙÙØ©',
-                children: [
-                  TextFormField(
-                    controller: _problemController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨Ø§ÙØªÙØµÙÙ... ÙØ«Ø§Ù: ÙØµØ¯Ø± ØµÙØª Ø·Ø±Ù Ø¹ÙØ¯ Ø§ÙØªØ³Ø§Ø±Ø¹',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v?.length ?? 0) < 10 ? 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨ÙØ²ÙØ¯ ÙÙ Ø§ÙØªÙØµÙÙ' : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              LiveCarButton(
-                label: 'ØªØ´Ø®ÙØµ Ø¨Ø§ÙØ°ÙØ§Ø¡ Ø§ÙØ§ØµØ·ÙØ§Ø¹Ù',
-                onPressed: _diagnose,
-                isLoading: _isLoading,
-                icon: Icons.psychology,
-              ),
-
-              // Result
-              if (_result != null) ...[
-                const SizedBox(height: 24),
-                _DiagnosisResultCard(result: _result!),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _SectionCard({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.grayLight),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    ),
-  );
-}
-
-class _DiagnosisResultCard extends StatelessWidget {
-  final DiagnosisResult result;
-  const _DiagnosisResultCard({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: result.severity.color, width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('ÙØªÙØ¬Ø© Ø§ÙØªØ´Ø®ÙØµ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: result.severity.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(result.severity.label,
-                  style: TextStyle(color: result.severity.color, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          Text(result.diagnosis, style: const TextStyle(fontSize: 15)),
-          const SizedBox(height: 16),
-          const Text('Ø§ÙØ£Ø³Ø¨Ø§Ø¨ Ø§ÙÙØ­ØªÙÙØ©:', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...result.possibleCauses.map((c) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(children: [
-              Icon(Icons.circle, size: 8, color: result.severity.color),
-              const SizedBox(width: 8),
-              Expanded(child: Text(c)),
-            ]),
-          )),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.blueLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.build_circle_outlined, color: AppColors.bluePrimary),
-                const SizedBox(width: 8),
-                Expanded(child: Text(result.recommendedService,
-                  style: const TextStyle(fontWeight: FontWeight.w500))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Ø§ÙØªÙÙÙØ© Ø§ÙÙØªÙÙØ¹Ø©:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(result.priceRange,
-                style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16)),
-            ],
-          ),
-          if (result.requiresImmediateAttention) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(result.urgencyMessage,
-                    style: const TextStyle(color: AppColors.error))),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
+  String _getSeverityLabel(DiagnosisSeverity severity) {
+    switch (severity) {
+      case DiagnosisSeverity.low: return 'منخفضة';
+      case DiagnosisSeverity.medium: return 'متوسطة';
+      case DiagnosisSeverity.high: return 'عالية';
+      case DiagnosisSeverity.critical: return 'حرجة';
+    }
   }
 }

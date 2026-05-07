@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../domain/models/diagnosis_result.dart';
 import '../../../../shared/widgets/livecar_button.dart';
 
-final _claudeServiceProvider = Provider((ref) => ClaudeService());
+final _claudeServiceProvider = Provider((ref) => GeminiService());
 
 class AiDiagnosisScreen extends ConsumerStatefulWidget {
   const AiDiagnosisScreen({super.key});
@@ -46,7 +46,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التشخيص: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Ø®Ø·Ø£ ÙÙ Ø§ÙØªØ´Ø®ÙØµ: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -59,7 +59,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
     return Scaffold(
       backgroundColor: AppColors.grayBackground,
       appBar: AppBar(
-        title: const Text('التشخيص الذكي'),
+        title: const Text('Ø§ÙØªØ´Ø®ÙØµ Ø§ÙØ°ÙÙ'),
         backgroundColor: AppColors.orange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -88,9 +88,9 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('مدعوم بـ Claude AI',
+                          Text('ÙØ¯Ø¹ÙÙ Ø¨Ù Claude AI',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('احصل على تشخيص دقيق في ثوانٍ',
+                          Text('Ø§Ø­ØµÙ Ø¹ÙÙ ØªØ´Ø®ÙØµ Ø¯ÙÙÙ ÙÙ Ø«ÙØ§ÙÙ',
                             style: TextStyle(color: Colors.white70, fontSize: 13)),
                         ],
                       ),
@@ -102,22 +102,22 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
 
               // Vehicle Info
               _SectionCard(
-                title: 'معلومات السيارة',
+                title: 'ÙØ¹ÙÙÙØ§Øª Ø§ÙØ³ÙØ§Ø±Ø©',
                 children: [
                   Row(children: [
                     Expanded(
                       child: TextFormField(
                         controller: _carMakeController,
-                        decoration: const InputDecoration(labelText: 'الماركة', hintText: 'تويوتا'),
-                        validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+                        decoration: const InputDecoration(labelText: 'Ø§ÙÙØ§Ø±ÙØ©', hintText: 'ØªÙÙÙØªØ§'),
+                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: _carModelController,
-                        decoration: const InputDecoration(labelText: 'الموديل', hintText: 'كامري'),
-                        validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+                        decoration: const InputDecoration(labelText: 'Ø§ÙÙÙØ¯ÙÙ', hintText: 'ÙØ§ÙØ±Ù'),
+                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
                       ),
                     ),
                   ]),
@@ -125,7 +125,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
                   TextFormField(
                     controller: _carYearController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'سنة الصنع', hintText: '2020'),
+                    decoration: const InputDecoration(labelText: 'Ø³ÙØ© Ø§ÙØµÙØ¹', hintText: '2020'),
                   ),
                 ],
               ),
@@ -133,23 +133,23 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
 
               // Problem Description
               _SectionCard(
-                title: 'وصف المشكلة',
+                title: 'ÙØµÙ Ø§ÙÙØ´ÙÙØ©',
                 children: [
                   TextFormField(
                     controller: _problemController,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                      hintText: 'صف المشكلة بالتفصيل... مثال: يصدر صوت طرق عند التسارع',
+                      hintText: 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨Ø§ÙØªÙØµÙÙ... ÙØ«Ø§Ù: ÙØµØ¯Ø± ØµÙØª Ø·Ø±Ù Ø¹ÙØ¯ Ø§ÙØªØ³Ø§Ø±Ø¹',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) => (v?.length ?? 0) < 10 ? 'صف المشكلة بمزيد من التفصيل' : null,
+                    validator: (v) => (v?.length ?? 0) < 10 ? 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨ÙØ²ÙØ¯ ÙÙ Ø§ÙØªÙØµÙÙ' : null,
                   ),
                 ],
               ),
               const SizedBox(height: 20),
 
               LiveCarButton(
-                label: 'تشخيص بالذكاء الاصطناعي',
+                label: 'ØªØ´Ø®ÙØµ Ø¨Ø§ÙØ°ÙØ§Ø¡ Ø§ÙØ§ØµØ·ÙØ§Ø¹Ù',
                 onPressed: _diagnose,
                 isLoading: _isLoading,
                 icon: Icons.psychology,
@@ -210,7 +210,7 @@ class _DiagnosisResultCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('نتيجة التشخيص', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
+              const Text('ÙØªÙØ¬Ø© Ø§ÙØªØ´Ø®ÙØµ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -226,7 +226,7 @@ class _DiagnosisResultCard extends StatelessWidget {
           const Divider(height: 20),
           Text(result.diagnosis, style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 16),
-          const Text('الأسباب المحتملة:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Ø§ÙØ£Ø³Ø¨Ø§Ø¨ Ø§ÙÙØ­ØªÙÙØ©:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           ...result.possibleCauses.map((c) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -256,7 +256,7 @@ class _DiagnosisResultCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('التكلفة المتوقعة:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Ø§ÙØªÙÙÙØ© Ø§ÙÙØªÙÙØ¹Ø©:', style: TextStyle(fontWeight: FontWeight.bold)),
               Text(result.priceRange,
                 style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
@@ -290,7 +290,7 @@ import '../../../core/theme/app_colors.dart';
 import '../domain/models/diagnosis_result.dart';
 import '../../../shared/widgets/livecar_button.dart';
 
-final _claudeServiceProvider = Provider((ref) => ClaudeService());
+final _claudeServiceProvider = Provider((ref) => GeminiService());
 
 class AiDiagnosisScreen extends ConsumerStatefulWidget {
   const AiDiagnosisScreen({super.key});
@@ -331,7 +331,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التشخيص: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Ø®Ø·Ø£ ÙÙ Ø§ÙØªØ´Ø®ÙØµ: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -344,7 +344,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
     return Scaffold(
       backgroundColor: AppColors.grayBackground,
       appBar: AppBar(
-        title: const Text('التشخيص الذكي'),
+        title: const Text('Ø§ÙØªØ´Ø®ÙØµ Ø§ÙØ°ÙÙ'),
         backgroundColor: AppColors.orange,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -373,9 +373,9 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('مدعوم بـ Claude AI',
+                          Text('ÙØ¯Ø¹ÙÙ Ø¨Ù Claude AI',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('احصل على تشخيص دقيق في ثوانٍ',
+                          Text('Ø§Ø­ØµÙ Ø¹ÙÙ ØªØ´Ø®ÙØµ Ø¯ÙÙÙ ÙÙ Ø«ÙØ§ÙÙ',
                             style: TextStyle(color: Colors.white70, fontSize: 13)),
                         ],
                       ),
@@ -387,22 +387,22 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
 
               // Vehicle Info
               _SectionCard(
-                title: 'معلومات السيارة',
+                title: 'ÙØ¹ÙÙÙØ§Øª Ø§ÙØ³ÙØ§Ø±Ø©',
                 children: [
                   Row(children: [
                     Expanded(
                       child: TextFormField(
                         controller: _carMakeController,
-                        decoration: const InputDecoration(labelText: 'الماركة', hintText: 'تويوتا'),
-                        validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+                        decoration: const InputDecoration(labelText: 'Ø§ÙÙØ§Ø±ÙØ©', hintText: 'ØªÙÙÙØªØ§'),
+                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: _carModelController,
-                        decoration: const InputDecoration(labelText: 'الموديل', hintText: 'كامري'),
-                        validator: (v) => v?.isEmpty ?? true ? 'مطلوب' : null,
+                        decoration: const InputDecoration(labelText: 'Ø§ÙÙÙØ¯ÙÙ', hintText: 'ÙØ§ÙØ±Ù'),
+                        validator: (v) => v?.isEmpty ?? true ? 'ÙØ·ÙÙØ¨' : null,
                       ),
                     ),
                   ]),
@@ -410,7 +410,7 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
                   TextFormField(
                     controller: _carYearController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'سنة الصنع', hintText: '2020'),
+                    decoration: const InputDecoration(labelText: 'Ø³ÙØ© Ø§ÙØµÙØ¹', hintText: '2020'),
                   ),
                 ],
               ),
@@ -418,23 +418,23 @@ class _AiDiagnosisScreenState extends ConsumerState<AiDiagnosisScreen> {
 
               // Problem Description
               _SectionCard(
-                title: 'وصف المشكلة',
+                title: 'ÙØµÙ Ø§ÙÙØ´ÙÙØ©',
                 children: [
                   TextFormField(
                     controller: _problemController,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                      hintText: 'صف المشكلة بالتفصيل... مثال: يصدر صوت طرق عند التسارع',
+                      hintText: 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨Ø§ÙØªÙØµÙÙ... ÙØ«Ø§Ù: ÙØµØ¯Ø± ØµÙØª Ø·Ø±Ù Ø¹ÙØ¯ Ø§ÙØªØ³Ø§Ø±Ø¹',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) => (v?.length ?? 0) < 10 ? 'صف المشكلة بمزيد من التفصيل' : null,
+                    validator: (v) => (v?.length ?? 0) < 10 ? 'ØµÙ Ø§ÙÙØ´ÙÙØ© Ø¨ÙØ²ÙØ¯ ÙÙ Ø§ÙØªÙØµÙÙ' : null,
                   ),
                 ],
               ),
               const SizedBox(height: 20),
 
               LiveCarButton(
-                label: 'تشخيص بالذكاء الاصطناعي',
+                label: 'ØªØ´Ø®ÙØµ Ø¨Ø§ÙØ°ÙØ§Ø¡ Ø§ÙØ§ØµØ·ÙØ§Ø¹Ù',
                 onPressed: _diagnose,
                 isLoading: _isLoading,
                 icon: Icons.psychology,
@@ -495,7 +495,7 @@ class _DiagnosisResultCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('نتيجة التشخيص', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
+              const Text('ÙØªÙØ¬Ø© Ø§ÙØªØ´Ø®ÙØµ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -511,7 +511,7 @@ class _DiagnosisResultCard extends StatelessWidget {
           const Divider(height: 20),
           Text(result.diagnosis, style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 16),
-          const Text('الأسباب المحتملة:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Ø§ÙØ£Ø³Ø¨Ø§Ø¨ Ø§ÙÙØ­ØªÙÙØ©:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           ...result.possibleCauses.map((c) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -541,7 +541,7 @@ class _DiagnosisResultCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('التكلفة المتوقعة:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Ø§ÙØªÙÙÙØ© Ø§ÙÙØªÙÙØ¹Ø©:', style: TextStyle(fontWeight: FontWeight.bold)),
               Text(result.priceRange,
                 style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16)),
             ],

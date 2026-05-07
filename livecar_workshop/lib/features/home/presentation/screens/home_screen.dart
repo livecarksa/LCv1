@@ -52,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.person_outline),
-            onPressed: () {},
+            onPressed: () => context.go('/profile'),
           ),
         ],
       ),
@@ -67,7 +67,6 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stats Grid
               statsAsync.when(
                 loading: () => const LoadingShimmerList(count: 4, height: 100),
                 error: (e, _) => const SizedBox(),
@@ -108,8 +107,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Quick Actions
               const Text(
                 'الإجراءات السريعة',
                 style: TextStyle(
@@ -125,14 +122,14 @@ class HomeScreen extends ConsumerWidget {
                     label: 'طلب جديد',
                     icon: Icons.add_circle_outline,
                     color: AppColors.bluePrimary,
-                    onTap: () => context.push('/orders/new'),
+                    onTap: () => context.go('/orders'),
                   ),
                   const SizedBox(width: 12),
                   _QuickAction(
                     label: 'تشخيص ذكي',
                     icon: Icons.psychology_outlined,
                     color: AppColors.orange,
-                    onTap: () => context.push('/diagnosis'),
+                    onTap: () => context.go('/ai-diagnosis'),
                   ),
                   const SizedBox(width: 12),
                   _QuickAction(
@@ -146,13 +143,11 @@ class HomeScreen extends ConsumerWidget {
                     label: 'الإعدادات',
                     icon: Icons.settings_outlined,
                     color: AppColors.grayDark,
-                    onTap: () {},
+                    onTap: () => context.go('/profile'),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Pending Orders
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -180,11 +175,13 @@ class HomeScreen extends ConsumerWidget {
                         subtitle: 'ستظهر الطلبات الجديدة هنا',
                       )
                     : Column(
-                        children: orders.map((order) => OrderCard(
-                          order: order,
-                          onAccept: () => _updateStatus(order['id'], 'accepted'),
-                          onReject: () => _updateStatus(order['id'], 'cancelled'),
-                        )).toList(),
+                        children: orders
+                            .map((order) => OrderCard(
+                                  order: order,
+                                  onAccept: () => _updateStatus(order['id'], 'accepted'),
+                                  onReject: () => _updateStatus(order['id'], 'cancelled'),
+                                ))
+                            .toList(),
                       ),
               ),
             ],
@@ -198,8 +195,7 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _updateStatus(String orderId, String status) async {
     await Supabase.instance.client
         .from('orders')
-        .update({'status': status})
-        .eq('id', orderId);
+        .update({'status': status}).eq('id', orderId);
   }
 }
 
@@ -253,27 +249,47 @@ class _BottomNav extends ConsumerWidget {
       currentIndex: _getIndex(location),
       onTap: (i) {
         switch (i) {
-          case 0: context.go('/home'); break;
-          case 1: context.go('/orders'); break;
-          case 2: context.go('/diagnosis'); break;
-          case 3: context.go('/profile'); break;
+          case 0:
+            context.go('/home');
+            break;
+          case 1:
+            context.go('/orders');
+            break;
+          case 2:
+            context.go('/ai-diagnosis');
+            break;
+          case 3:
+            context.go('/profile');
+            break;
         }
       },
       selectedItemColor: AppColors.bluePrimary,
       unselectedItemColor: AppColors.grayMid,
       type: BottomNavigationBarType.fixed,
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'الرئيسية'),
-        BottomNavigationBarItem(icon: Icon(Icons.list_alt_outlined), activeIcon: Icon(Icons.list_alt), label: 'الطلبات'),
-        BottomNavigationBarItem(icon: Icon(Icons.psychology_outlined), activeIcon: Icon(Icons.psychology), label: 'تشخيص'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'حسابي'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'الرئيسية'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt_outlined),
+            activeIcon: Icon(Icons.list_alt),
+            label: 'الطلبات'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.psychology_outlined),
+            activeIcon: Icon(Icons.psychology),
+            label: 'تشخيص'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'حسابي'),
       ],
     );
   }
 
   int _getIndex(String location) {
     if (location.startsWith('/orders')) return 1;
-    if (location.startsWith('/diagnosis')) return 2;
+    if (location.startsWith('/ai-diagnosis')) return 2;
     if (location.startsWith('/profile')) return 3;
     return 0;
   }
